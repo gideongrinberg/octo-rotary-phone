@@ -1,10 +1,10 @@
 import os
 import json
-import popular
 import unpopular
 import numpy as np
 import polars as pl
 import lightkurve as lk
+from . import popular
 from scipy.signal import find_peaks
 from astrocut import CutoutFactory
 from astropy.coordinates import SkyCoord
@@ -57,8 +57,7 @@ def get_tpf(coords, sector, camera, ccd):
     """
     Generates a target pixel file (HDUList) for a given target.
     """
-    # Note: This may need to be updated to use GCS instead of S3
-    cube_file = f"gs://tess-public-data/tess-s{str(sector).zfill(4)}-{camera}-{ccd}-cube.fits"
+    cube_file = f"s3://stpubdata/tess/public/mast/tess-s{str(sector).zfill(4)}-{camera}-{ccd}-cube.fits"
     return CutoutFactory().cube_cut(cube_file, coords, cutout_size=50, memory_only=True)
 
 def make_lightcurve(tpf):
