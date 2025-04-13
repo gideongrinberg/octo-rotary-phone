@@ -28,6 +28,8 @@ gcloud functions deploy process_tess_target \
   --source=./function \
   --entry-point=handle_request \
   --set-build-env-vars GOOGLE_VENDOR_PIP_DEPENDENCIES=vendor \
-  --trigger-http
+  --trigger-http \
+  --memory=4Gi \
+  --cpu=4
 
 rm ./function/requirements.txt
