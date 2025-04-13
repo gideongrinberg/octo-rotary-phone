@@ -1,36 +1,36 @@
 #! /usr/bin/env bash
 set -e
 
-if [ ! -d "./function/vendor/" ]; then
+if [ ! -d "./src/vendor/" ]; then
   echo "Downloading dependencies..."
-  uv export --no-hashes --no-dev > ./function/requirements.txt
-  pip wheel -r ./function/requirements.txt -w function/vendor/
+  uv export --no-hashes --no-dev > ./src/requirements.txt
+  pip wheel -r ./src/requirements.txt -w function/vendor/
 else
   echo "Dependencies are already installed. Continuing..."
 fi
 
-echo > ./function/requirements.txt
+echo > ./src/requirements.txt
 echo "Creating requirements.txt..."
-for whl in ./function/vendor/*.whl; do
+for whl in ./src/vendor/*.whl; do
   filename=$(basename "$whl")
   if [[ "$filename" == *function_framework* || "$filename" == *functions-framework* ]]; then
     continue
   fi
 
-  echo "vendor/$(basename "$whl")" >> function/requirements.txt
+  echo "vendor/$(basename "$whl")" >> ./src/requirements.txt
 done
 
-echo "functions-framework" >> function/requirements.txt
+echo "functions-framework" >> ./src/requirements.txt
 echo "Deploying cloud function..."
 
 gcloud functions deploy process_tess_target \
   --runtime=python312 \
   --region=us-east4 \
-  --source=./function \
+  --source=./src \
   --entry-point=handle_request \
   --set-build-env-vars GOOGLE_VENDOR_PIP_DEPENDENCIES=vendor \
   --trigger-http \
   --memory=4Gi \
   --cpu=4
 
-rm ./function/requirements.txt
+rm ./src/requirements.txt

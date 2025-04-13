@@ -1,4 +1,4 @@
-import pipeline
+from pipeline import *
 
 def handle_request(request):
     request_json = request.get_json(silent=True)
