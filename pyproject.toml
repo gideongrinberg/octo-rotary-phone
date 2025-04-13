@@ -1,0 +1,25 @@
+[project]
+name = "pipeline"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "astrocut",
+    "astropy>=7.0.1",
+    "lightkurve>=2.5.0",
+    "polars>=1.26.0",
+    "tesswcs>=1.5.1",
+    "tqdm>=4.67.1",
+    "unpopular",
+]
+
+[tool.uv.sources]
+unpopular = { git = "https://github.com/soichiro-hattori/unpopular" }
+astrocut = { git = "https://github.com/spacetelescope/astrocut", rev = "Footprint-Cutout" }
+
+[dependency-groups]
+dev = [
+    "ipywidgets>=8.1.5",
+    "jupyterlab>=4.4.0",
+]
