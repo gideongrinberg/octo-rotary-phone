@@ -1,16 +1,28 @@
-FROM public.ecr.aws/lambda/python:3.12
+FROM python:3.12-slim
 
-RUN dnf install -y git
-RUN pip install "astropy>=7.0.1" \ 
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y git && apt-get clean
+
+COPY pyproject.toml /app/
+COPY src/ /app/src/
+
+# Install dependencies
+RUN pip install --no-cache-dir "astropy>=7.0.1" \
                 "lightkurve>=2.5.0" \
                 "polars>=1.26.0" \
-                "tesswcs>=1.5.1" \ 
-                "git+https://github.com/spacetelescope/astrocut@Footprint-Cutout" \ 
+                "tesswcs>=1.5.1" \
+                "google-cloud-storage>=2.0.0" \
+                "functions-framework>=3.0.0" \
+                "git+https://github.com/spacetelescope/astrocut@Footprint-Cutout" \
                 "git+https://github.com/soichiro-hattori/unpopular"
 
-RUN yes | pip uninstall asyncio
+# Configure the container to use the Cloud Function entrypoint
+ENV FUNCTION_TARGET=tess_pipeline
+ENV PORT=8080
 
-COPY src/popular/__init__.py ${LAMBDA_TASK_ROOT}/popular/
-COPY src/pipeline.py ${LAMBDA_TASK_ROOT}
+# Install Functions Framework
+RUN pip install --no-cache-dir functions-framework
 
-CMD ["pipeline.lambda_handler"]
+# Run the web service on container startup
+CMD [ "functions-framework", "--target=tess_pipeline", "--source=src/main.py" ]

@@ -1,6 +1,5 @@
 import os
 import json
-import boto3
 import popular
 import unpopular
 import numpy as np
@@ -9,6 +8,7 @@ import lightkurve as lk
 from scipy.signal import find_peaks
 from astrocut import CutoutFactory
 from astropy.coordinates import SkyCoord
+from google.cloud import storage
 
 def _count_harmonics(
     lc: lk.LightCurve, height: float = 0.15
@@ -41,6 +41,8 @@ def _count_harmonics(
 
     found_harmonics = []
     for i, period in enumerate(peak_periods):
+        if i >= len(expected_harmonics):
+            break
         in_range = 0.9 * expected_harmonics[i] <= period <= 1.1 * expected_harmonics[i]
         if in_range:
             found_harmonics.append((period, properties["peak_heights"][i]))
@@ -55,7 +57,8 @@ def get_tpf(coords, sector, camera, ccd):
     """
     Generates a target pixel file (HDUList) for a given target.
     """
-    cube_file = f"s3://stpubdata/tess/public/mast/tess-s{str(sector).zfill(4)}-{camera}-{ccd}-cube.fits"
+    # Note: This may need to be updated to use GCS instead of S3
+    cube_file = f"gs://tess-public-data/tess-s{str(sector).zfill(4)}-{camera}-{ccd}-cube.fits"
     return CutoutFactory().cube_cut(cube_file, coords, cutout_size=50, memory_only=True)
 
 def make_lightcurve(tpf):
@@ -70,7 +73,6 @@ def make_lightcurve(tpf):
     apt_detrended_flux = s.get_aperture_lc(data_type="cpm_subtracted_flux")
     
     return lk.TessLightCurve(time=s.time, flux=apt_detrended_flux)
-
 
 def process_target(target):
     """
@@ -89,39 +91,48 @@ def process_target(target):
     lc = make_lightcurve(tpf)
     return (tic, sector, is_complex(lc))
 
-def lambda_handler(event, context):
-    if "Records" in event:
-        body = json.loads(event["Records"][0]["body"])
-        target = body
-    else:
-        target = event
-
+def tess_pipeline(request):
+    """
+    Cloud Function entry point for processing a target.
+    
+    Args:
+        request (flask.Request): The request object.
+        
+    Returns:
+        The response text, or any set of values that can be turned into a
+        Response object using make_response.
+    """
+    # Parse request data
+    request_json = request.get_json(silent=True)
+    
+    if not request_json:
+        return {"error": "No JSON received"}, 400
+        
+    target = request_json
+    
     try:
         tic, sector, result = process_target(target)
-
-        bucket_name = "tess-pipeline-results"
-        s3_client = boto3.client("s3")
-        s3_client.put_object(
-            Bucket=bucket_name,
-            Key=f"{tic}_{sector}.json",
-            Body=json.dumps({
+        
+        # Store result in Google Cloud Storage
+        bucket_name = os.environ.get("RESULTS_BUCKET", "tess-pipeline-results")
+        storage_client = storage.Client()
+        bucket = storage_client.bucket(bucket_name)
+        blob = bucket.blob(f"{tic}_{sector}.json")
+        
+        blob.upload_from_string(
+            json.dumps({
                 "tic": tic,
                 "sector": sector,
                 "result": result
-            })
+            }),
+            content_type="application/json"
         )
-
+        
         return {
-            "statusCode": 200,
-            "body": json.dumps({
-                "tic": tic,
-                "sector": sector,
-                "result": result 
-            })
+            "tic": tic,
+            "sector": sector,
+            "result": result
         }
     except Exception as e:
         print(f"Error processing target: {str(e)}")
-        return {
-            'statusCode': 500,
-            'body': json.dumps({'error': str(e)})
-        }
+        return {"error": str(e)}, 500
