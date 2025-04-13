@@ -3,7 +3,7 @@ set -e
 
 if [ ! -d "./function/vendor/" ]; then
   echo "Downloading dependencies..."
-  uv export --locked --no-hashes --no-dev > ./function/requirements.txt
+  uv export --no-hashes --no-dev > ./function/requirements.txt
   pip wheel -r ./function/requirements.txt -w function/vendor/
 else
   echo "Dependencies are already installed. Continuing..."
@@ -22,6 +22,7 @@ done
 
 echo "functions-framework" >> function/requirements.txt
 echo "Deploying cloud function..."
+
 gcloud functions deploy process_tess_target \
   --runtime=python312 \
   --region=us-east4 \
