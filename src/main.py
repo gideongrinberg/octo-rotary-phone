@@ -26,11 +26,7 @@ def handle_request(request):
             content_type="application/json"
         )
         
-        return {
-            "tic": tic,
-            "sector": sector,
-            "result": result
-        }
+        return 200
     except Exception as e:
         print(f"Error processing target: {str(e)}")
         return {"error": str(e)}, 500
