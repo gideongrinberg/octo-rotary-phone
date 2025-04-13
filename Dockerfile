@@ -18,11 +18,11 @@ RUN pip install --no-cache-dir "astropy>=7.0.1" \
                 "git+https://github.com/soichiro-hattori/unpopular"
 
 # Configure the container to use the Cloud Function entrypoint
-ENV FUNCTION_TARGET=tess_pipeline
+ENV FUNCTION_TARGET=handle_request
 ENV PORT=8080
 
 # Install Functions Framework
 RUN pip install --no-cache-dir functions-framework
 
 # Run the web service on container startup
-CMD [ "functions-framework", "--target=tess_pipeline", "--source=src/main.py" ]
+CMD [ "functions-framework", "--target=handle_request", "--source=src/main.py" ]

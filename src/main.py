@@ -91,7 +91,7 @@ def process_target(target):
     lc = make_lightcurve(tpf)
     return (tic, sector, is_complex(lc))
 
-def tess_pipeline(request):
+def handle_request(request):
     """
     Cloud Function entry point for processing a target.
     
@@ -114,7 +114,7 @@ def tess_pipeline(request):
         tic, sector, result = process_target(target)
         
         # Store result in Google Cloud Storage
-        bucket_name = os.environ.get("RESULTS_BUCKET", "tess-pipeline-results")
+        bucket_name = "tess_pipeline_results"
         storage_client = storage.Client()
         bucket = storage_client.bucket(bucket_name)
         blob = bucket.blob(f"{tic}_{sector}.json")
